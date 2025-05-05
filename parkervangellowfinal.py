@@ -2,7 +2,10 @@
 Name:       Parker Vangellow
 CS230:      Section 4
 Data:       Nuclear Explosions 1945-1998
-URL:        Link to your web application on Streamlit Cloud (if posted)
+URL:        https://nuclearexplosionspv.streamlit.app/
+(Note on URL): I spent a lot of time trying to solve an error telling me there was no module named matplotlib.
+I tried adding a requirements.txt to my GitHub Repository but that did not seem to help.
+I would really appreciate help with this, so I can publish it. Thank you
 
 Description: This website deals with the nuclear explosion data from 1945-1998.
 The opening page has a picture of a nuclear explosion, a fun explosion like screen effect, and the data used for the graphs and charts.
@@ -27,7 +30,7 @@ st.set_page_config(initial_sidebar_state="collapsed")
 path = "C:\\Users\\pgjv7\\OneDrive - Bentley University\\Desktop\\CS-230\\parkervangellowfinal.py"
 
 df = pd.read_csv("nuclear_explosions.csv")
-df.dropna(inplace=True)
+
 
 # Function to center and underline title, as well as define parameters for explosion effect
 st.markdown("""
@@ -62,6 +65,8 @@ st.markdown("""
 st.markdown('<h1 class="centered-title">Nuclear Explosions</h1>', unsafe_allow_html=True)
 
 # Image
+#[PY3] - Try and except for error if user doesn't have the .jpg downloaded
+#[ST3] - nuclear bomb image for streamlit widget
 try:
     img1 = Image.open("nucbombpic.jpg")
     st.image(img1, width=800)
@@ -69,6 +74,7 @@ except FileNotFoundError:
     st.warning("Warning: Nuclear explosion image not found. Proceeding without it.")
 
 # Explosion
+#[ST1] - streamlit button tool with explosion effect
 if st.button('💥 Simulate Explosion 💥'):
     explosion_placeholder = st.empty()
     explosion_placeholder.markdown(
@@ -84,15 +90,20 @@ print(df.info)
 st.write("Use the arrow on the left side of the screen to access the sidebar to navigate the website!")
 
 #Data filtering and adjustments
+#[DA1] - cleaning data with .dropna
+#[DA2] - sorting data by descending yield value
 df.rename(columns={"Location.Cordinates.Latitude": "lat", "Location.Cordinates.Longitude": "lon"}, inplace=True)
 df = df.sort_values(by="Data.Yeild.Upper", ascending=False)
+df.dropna(inplace=True)
 st.write(df)
 
+#[ST4] - sidebar navigation tool
 selected_option = st.sidebar.radio("Please what data you want to view",
                                    ["", "Explosions Over Time", "Explosions by Country", "Map of All Explosions", "Yields" ])
 
 #Define function for different graphs based on country choice
 #Left a choice for ALL
+#[PY1] - function with default value used twice, once with default value, once without
 def exps_time(country="ALL", test_type="ALL"):
     # Filter data based on country selection
     if country != "ALL":
@@ -100,7 +111,8 @@ def exps_time(country="ALL", test_type="ALL"):
     else:
         filtered_df = df
 
-    # Convert date columns to datetime
+    # Convert date columns to single date
+    #[DA7] - combined data from multiple columns to make one data field of a whole date
     filtered_df['Date'] = pd.to_datetime(filtered_df[['Date.Year', 'Date.Month', 'Date.Day']]
                                          .rename(
         columns={'Date.Year': 'year', 'Date.Month': 'month', 'Date.Day': 'day'}))
@@ -130,32 +142,36 @@ def exps_time(country="ALL", test_type="ALL"):
     st.write(
         f"This line graph shows the number of nuclear explosions conducted each year by {country if country != 'ALL' else 'all countries'} from 1945 onwards.")
 
-
+#[VIZ1] - line graph based on explosions in countries individually
+#[VIZ2] - line graph based on explosions in all countries
 if selected_option == "Explosions Over Time":
     st.title('Explosions over time')
-
+    #[ST2] selectbox widget
+    #[DA4] - filtered by one condition: country
     country_box = st.selectbox("Select a country", ["ALL", "USA", "USSR", "FRANCE", "UK", "CHINA"])
 
     # Call the function with the selected country
+    #[PY1] - function with default value used twice, once with default value, once without
     exps_time(country_box)
     exps_time()
-
+#[VIZ3] - pie chart of explosions by country
 elif selected_option == "Explosions by Country":
     # Create a figure and axis
     fig, ax = plt.subplots()
 
     # Create the pie chart
     df["WEAPON SOURCE COUNTRY"].value_counts().plot(kind="pie", autopct='%1.1f%%', ax=ax)
-    ax.set_ylabel('')  # Remove the y-label which is unnecessary for pie charts
+    ax.set_ylabel('')
 
-    # Display the plot in Streamlit
     st.pyplot(fig)
 
+#[VIZ4] - map visualization of all nuclear explosions
 elif selected_option == "Map of All Explosions":
     st.title("Map of All Explosions")
 
     ICON_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/IncessantBlabber_Radioactive_symbol.png/640px-IncessantBlabber_Radioactive_symbol.png"
 
+    #[PY5] - dictionary with code for different aspects of the icon
     icon_data = {
         "url": ICON_URL,
         "width": 10,
@@ -185,7 +201,6 @@ elif selected_option == "Map of All Explosions":
         pitch=0
     )
 
-    # stylish tool tip
     tool_tip = {"html": "Weapon Name:<br/> <b>{Data.Name}</b>",
                 "style": {"backgroundColor": "red",
                           "color": "white"}
@@ -201,6 +216,7 @@ elif selected_option == "Map of All Explosions":
     st.pydeck_chart(icon_map)
 
 if selected_option == "Yields":
+    #[PY2] - function returns 6 values
     def Yields(df):
 
         first_row = df.iloc[0]
@@ -211,6 +227,7 @@ if selected_option == "Yields":
         min_weapon = max_weapon = first_row['Data.Name']
         min_country = max_country = first_row['WEAPON SOURCE COUNTRY']
 
+        #[DA8]-df.iterrows(), iterate through rows of a dataframe
         for index, row in df.iterrows():
             current_lower = row['Data.Yeild.Lower']
             current_upper = row['Data.Yeild.Upper']
@@ -236,7 +253,7 @@ if selected_option == "Yields":
 
 
     min_y, min_w, min_c, max_y, max_w, max_c = Yields(df)
-
+    #[DA3] - found smallest and largest yields
     if min_y is not None:
         st.write(f"The smallest nuclear test was **{min_w}** with a yield of **{min_y:.1f} kilotons**, conducted by **{min_c}**.")
         st.write("")
